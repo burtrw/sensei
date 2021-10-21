@@ -232,7 +232,7 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 		Sensei()->quiz->set_questions( $quiz_id, array_filter( $question_ids ) );
 
 		$response = new WP_REST_Response();
-		$response->set_data( $this->get_quiz_data( get_post( $quiz_id ) ) );
+		$response->set_data( $this->get_quiz_data( get_post( $quiz_id ), $lesson ) );
 
 		return $response;
 	}
@@ -315,7 +315,7 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 		}
 
 		$response = new WP_REST_Response();
-		$response->set_data( $this->get_quiz_data( get_post( $quiz ) ) );
+		$response->set_data( $this->get_quiz_data( get_post( $quiz ), $lesson ) );
 
 		return $response;
 	}
@@ -323,14 +323,16 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 	/**
 	 * Helper method which retrieves quiz options.
 	 *
-	 * @param WP_Post $quiz
+	 * @param WP_Post $quiz   The quiz post.
+	 * @param WP_Post $lesson The lesson post.
 	 *
 	 * @return array
 	 */
-	private function get_quiz_data( WP_Post $quiz ) : array {
+	private function get_quiz_data( WP_Post $quiz, WP_Post $lesson ) : array {
 		$post_meta = get_post_meta( $quiz->ID );
+
 		return [
-			'options'   => [
+			'options'       => [
 				'pass_required'         => ! empty( $post_meta['_pass_required'][0] ) && 'on' === $post_meta['_pass_required'][0],
 				'quiz_passmark'         => empty( $post_meta['_quiz_passmark'][0] ) ? 0 : (int) $post_meta['_quiz_passmark'][0],
 				'auto_grade'            => ! empty( $post_meta['_quiz_grade_type'][0] ) && 'auto' === $post_meta['_quiz_grade_type'][0],
@@ -338,7 +340,9 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 				'show_questions'        => empty( $post_meta['_show_questions'][0] ) ? null : (int) $post_meta['_show_questions'][0],
 				'random_question_order' => ! empty( $post_meta['_random_question_order'][0] ) && 'yes' === $post_meta['_random_question_order'][0],
 			],
-			'questions' => $this->get_quiz_questions( $quiz ),
+			'questions'     => $this->get_quiz_questions( $quiz ),
+			'lesson_title'  => $lesson->post_title,
+			'lesson_status' => $lesson->post_status,
 		];
 	}
 
@@ -377,7 +381,7 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 		$schema = [
 			'type'       => 'object',
 			'properties' => [
-				'options'   => [
+				'options'       => [
 					'type'       => 'object',
 					'required'   => true,
 					'properties' => [
@@ -413,10 +417,18 @@ class Sensei_REST_API_Lesson_Quiz_Controller extends \WP_REST_Controller {
 						],
 					],
 				],
-				'questions' => [
+				'questions'     => [
 					'type'     => 'array',
 					'required' => true,
 					'items'    => $this->get_single_question_schema(),
+				],
+				'lesson_title'  => [
+					'type'        => 'string',
+					'description' => 'The lesson title',
+				],
+				'lesson_status' => [
+					'type'        => 'string',
+					'description' => 'The lesson status',
 				],
 			],
 		];

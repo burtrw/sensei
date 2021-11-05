@@ -478,4 +478,36 @@ class Sensei_Class_Lesson_Test extends WP_UnitTestCase {
 		$first_lesson = Sensei()->lesson::find_first_prerequisite_lesson( $course_with_lessons['lesson_ids'][3], $user_id );
 		$this->assertEquals( $course_with_lessons['lesson_ids'][1], $first_lesson );
 	}
+
+	public function testLessonsAssignedToACourseShouldHavePrerequisitesFromThatCourse() {
+		/* Arrange. */
+		$course_with_lessons   = $this->factory->get_course_with_lessons(
+			[
+				'lesson_count'   => 3,
+				'question_count' => 0,
+			]
+		);
+		$lesson_id_with_course = $course_with_lessons['lesson_ids'][0];
+
+		// Populate the database with other courses/lessons to make sure the tests work.
+		$this->factory->get_course_with_lessons(
+			[
+				'lesson_count'   => 3,
+				'question_count' => 0,
+			]
+		);
+
+		$lesson = new Sensei_Lesson();
+		$method = new ReflectionMethod( $lesson, 'get_prerequisites' );
+		$method->setAccessible( true );
+
+		/* Act */
+		$prerequisites = $method->invoke( $lesson, $lesson_id_with_course, $course_with_lessons['course_id'] );
+
+		/* Assert */
+		$this->assertCount(
+			2, // Excluding the original lesson from the count.
+			$prerequisites
+		);
+	}
 }

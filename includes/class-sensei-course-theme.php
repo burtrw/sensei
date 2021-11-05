@@ -82,11 +82,17 @@ class Sensei_Course_Theme {
 	 * @access private
 	 */
 	public function maybe_use_sensei_theme_template() {
-		if ( ! is_single() || get_post_type() !== 'lesson' ) {
+		if ( ! is_single() || ! in_array( get_post_type(), [ 'lesson', 'quiz' ], true ) ) {
 			return;
 		}
 
-		$course_id = Sensei()->lesson->get_course_id( get_the_ID() );
+		if ( get_post_type() === 'quiz' ) {
+			$lesson_id = Sensei()->quiz->get_lesson_id( get_the_ID() );
+		} else {
+			$lesson_id = get_the_ID();
+		}
+
+		$course_id = Sensei()->lesson->get_course_id( $lesson_id );
 		$theme     = get_post_meta( $course_id, self::THEME_POST_META_NAME, true );
 
 		if ( self::SENSEI_THEME !== $theme ) {
@@ -95,7 +101,6 @@ class Sensei_Course_Theme {
 
 		add_filter( 'sensei_use_sensei_template', '__return_false' );
 		add_filter( 'template_include', [ $this, 'get_wrapper_template' ] );
-
 		add_filter( 'the_content', [ $this, 'override_template_content' ] );
 	}
 
@@ -123,7 +128,7 @@ class Sensei_Course_Theme {
 		remove_filter( 'the_content', [ $this, 'override_template_content' ] );
 
 		ob_start();
-		Sensei_Templates::get_template( 'course-theme/single-lesson.php' );
+		Sensei_Templates::get_template( 'course-theme/single-' . get_post_type() . '.php' );
 		$output = ob_get_clean();
 
 		// Return template content with rendered blocks.

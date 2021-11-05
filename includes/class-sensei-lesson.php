@@ -379,7 +379,7 @@ class Sensei_Lesson {
 	}
 
 	/**
-	 * Returns all the lesson prerequisite posts that can be assigned.
+	 * Returns all the lesson prerequisite posts, ordered by modules.
 	 *
 	 * @since 3.14.0
 	 *
@@ -389,23 +389,35 @@ class Sensei_Lesson {
 	 * @return WP_Post[]
 	 */
 	private function get_prerequisites( int $lesson_id, int $course_id ): array {
-		$query_args = array(
-			'post_type'        => 'lesson',
-			'posts_per_page'   => -1,
-			'orderby'          => 'title',
-			'order'            => 'ASC',
-			'exclude'          => $lesson_id,
-			'suppress_filters' => 0,
-			'post_status'      => [ 'publish', 'draft', 'future' ],
-			'meta_query'       => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- We only filter the lessons which belong to a course.
-				[
-					'key'   => '_lesson_course',
-					'value' => $course_id,
-				],
-			],
+		$lesson_status = [ 'publish', 'draft', 'future' ];
+		$modules       = Sensei()->modules->get_course_modules( $course_id );
+		$lessons       = Sensei()->modules->get_none_module_lessons( $course_id, $lesson_status );
+
+		// If the course has modules, make sure the lessons order is correct.
+		if ( $modules ) {
+			$in_module_lessons = [];
+			foreach ( $modules as $module_term ) {
+				$module_lessons_query = Sensei()->modules->get_lessons_query(
+					$course_id,
+					$module_term->term_id,
+					$lesson_status
+				);
+
+				$in_module_lessons = array_merge( $in_module_lessons, $module_lessons_query->get_posts() );
+			}
+
+			$lessons = array_merge( $in_module_lessons, $lessons );
+		}
+
+		// Exclude the lesson that we are getting the prerequisites for.
+		$lessons = array_filter(
+			$lessons,
+			function( $lesson ) use ( $lesson_id ) {
+				return $lesson->ID !== $lesson_id;
+			}
 		);
 
-		return get_posts( $query_args );
+		return $lessons;
 	}
 
 	/**

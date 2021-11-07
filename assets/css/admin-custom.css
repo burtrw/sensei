@@ -117,3 +117,10 @@ div.question_boolean_fields { margin-bottom: 10px; }
 .sensei-dismissible-link {
     text-decoration: none;
 }
+
+.quiz-settings {
+	display: flex;
+	justify-content: space-between;
+	width: 40%;
+	flex-wrap: wrap;
+}
